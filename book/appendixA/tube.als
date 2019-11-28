@@ -1,3 +1,48 @@
+/*
+ * Adapted from Exercise A.1.11 on page 236 of
+ * Software Abstractions, by Daniel Jackson
+ *
+ * In this exercise, you'll write some constraints about a simplified version
+ * of the railway lines of the London Underground, or "tube". (You can find the
+ * real thing at http://tube.tfl.gov.uk/.) There are three lines shown: the
+ * Jubilee line running north to south from Stanmore; the Central line running
+ * west to east to Epping; and the Circle line running clockwise through Baker
+ * Street.
+ *
+ * A simplified portion of the tube is shown below
+ *
+ *               Stanmore
+ *             x
+ *             |
+ *             | Baker Street
+ *           - x -
+ *         /   |   \
+ *        /    |    \
+ *       |     |     |         Epping
+ *  -----------------|-------x
+ *       |     |     |
+ *        \    |    /
+ *         \   |   /
+ *           -----
+ *             |
+ *             |
+ *
+ * You are given the following relations:
+ *
+ *  - Station:
+ *    the set of all stations
+ *
+ *  - JubileeStation, CentralStation, CircleStation:
+ *    for each line, a subset of Station
+ *
+ *  - jubliee, central, circle:
+ *    binary relations relating stations on each line to one another if they
+ *    are directly connected
+ *
+ *  - Stanmore, BakerStreet, Epping
+ *    singleton subsets of Station for individual stations
+ */
+
 module appendixA/tube
 
 abstract sig Station {
