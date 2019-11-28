@@ -159,11 +159,12 @@ fact endOfLines {
 * (f) It's possible to travel from station S1 to station S2 on line L
 */
 fact travelable {
-	BakerStreet.circle = NottingHillGate
-	NottingHillGate.central = BondStreet
+	// change rules here to loosen the constrain
+	NottingHillGate.circle = Westminster
 	BakerStreet.jubilee = BondStreet
 	Stanmore.jubilee = BakerStreet
 	LiverpoolStreet.central = Epping
+	Westminster.circle = LiverpoolStreet
 }
 
 /*
