@@ -36,9 +36,13 @@ fact "each and every prisoner belongs to a cell" {
 	all prisoner: Inmate | one prisoner.room
 }
 
-run show for 3 but exactly 2 Gang, exactly 4 Inmate
-run happy for 3 but exactly 2 Gang, exactly 4 Inmate
-run safe for 3 but exactly 2 Gang, exactly 4 Inmate
+// fact {
+// 	all c: Cell| #room.c < 3
+// }
+
+run show for 6 but exactly 2 Gang
+run happy for 6 but exactly 2 Gang
+run safe for 6 but exactly 2 Gang
 
 /*
 * (b) A safe assignment is not neccesary a happy assinment
