@@ -11,15 +11,15 @@ fact {
 
 pred BarberShavesHimself {
 	Barber in Barber.shaves
-}
+	}
 
 pred BarberNotShavesHimself {
 	Barber ! in Barber.shaves
-}
+	}
 
 // No instance found. Predicate may be inconsistent.
 pred Paradox {
 	BarberNotShavesHimself or BarberShavesHimself
-}
+	}
 
 run Paradox for 100
