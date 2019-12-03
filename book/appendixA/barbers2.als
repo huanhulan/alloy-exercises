@@ -1,29 +1,15 @@
 module appendixA/barbers
 
-abstract sig Human { shaves: set Man }
+sig Man { shaves: set Man }
 
-/*
-* Solving the paradox by introducing the existence of women
-*/
-sig Man, Woman extends Human {}
-
-one sig Barber in Human { }
+sig Barber extends Man { }
 
 fact {
 	Barber.shaves = { m: Man | m not in m.shaves }
 	}
 
-pred BarberShavesHimself {
-	Barber in Barber.shaves
+pred noBarber {
+	no Barber
 	}
 
-pred BarberNotShavesHimself {
-	Barber ! in Barber.shaves
-	}
-
-// No instance found. Predicate may be inconsistent.
-pred NoParadox {
-	BarberNotShavesHimself or BarberShavesHimself
-	}
-
-run NoParadox
+run noBarber for 3

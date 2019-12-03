@@ -18,8 +18,8 @@ fact {
 // 	}
 
 // No instance found. Predicate may be inconsistent.
-pred Paradox {
+pred paradox {
 	some Barber
 	}
 
-run Paradox for 100
+run paradox for 100

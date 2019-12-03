@@ -13,9 +13,9 @@ fact {
 	Barber.shaves = { m: Man | m not in m.shaves }
 	}
 
-pred NoParadox {
+pred noParadox {
 		some Barber
 		some Man
 	}
 
-run NoParadox
+run noParadox
