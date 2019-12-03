@@ -22,4 +22,4 @@ pred Paradox {
 	BarberNotShavesHimself or BarberShavesHimself
 }
 
-run Paradox for 3
+run Paradox for 100
