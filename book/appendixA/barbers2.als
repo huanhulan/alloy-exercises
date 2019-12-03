@@ -13,9 +13,17 @@ fact {
 	Barber.shaves = { m: Man | m not in m.shaves }
 	}
 
+pred BarberShavesHimself {
+	Barber in Barber.shaves
+	}
+
+pred BarberNotShavesHimself {
+	Barber ! in Barber.shaves
+	}
+
+// No instance found. Predicate may be inconsistent.
 pred NoParadox {
-		some Barber
-		some Man
+	BarberNotShavesHimself or BarberShavesHimself
 	}
 
 run NoParadox
