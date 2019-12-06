@@ -29,15 +29,15 @@ fact hosts {
 fact handshakeRules {
   no iden & handshake
   no p: People | p.spouse in p.handshake
-  
-  all p:People {
-    (some p.handshake implies {
-      all q: p.handshake |
-        p in q.handshake
-    }
-    or
-    p.handshake = none)
-  }
+  ~handshake in handshake
+  // all p:People {
+  //   (some p.handshake implies {
+  //     all q: p.handshake |
+  //       p in q.handshake
+  //   }
+  //   or
+  //   p.handshake = none)
+  // }
 }
 
 pred answersForAlice {
