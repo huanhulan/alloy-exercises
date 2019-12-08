@@ -251,5 +251,5 @@ fact crossContamination {
 }
 
 run {
-  #Operate = #Patient
+  #Operate = 3
 } for 10 but exactly 4 Glove, exactly 3 Patient, 4 seq, exactly 11 Time
