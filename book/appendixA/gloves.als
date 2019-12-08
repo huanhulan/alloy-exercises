@@ -41,6 +41,7 @@ sig Glove {
     and
     inner.t != outer.t
 
+  // each glove's side can be flipped
   all t: Time - T0/last |
     let t' = t.next |
       (inner+outer).t = (inner+outer).t'
@@ -62,6 +63,10 @@ one sig Doctor {
           leftHand.t[i] != leftHand.t[i']
       all disj i,i': (rightHand.t).inds |
           rightHand.t[i] != rightHand.t[i']
+
+      // The doctor must not come into contact with any patient's blood
+      all glove: (leftHand+rightHand).t[0] |
+        glove.inner.t.contaminated.t = False
   }
 }
 
@@ -73,46 +78,44 @@ abstract sig Event {
 sig Operate extends Event {
   patient: one Patient
 }{
-  // // precondition: clean gloves
-  // all doc: Doctor {
-  //   // 1st. must put on gloves
-  //   #doc.leftHand.pre.elems>0 and #doc.rightHand.pre.elems>0
-  //   and
-  //   // 2st. the surgeon must not come into contact with any patient's blood
-  //   // 2.1. more than one glove on each hand, then the innerside of the glove that touches doctor's hand must be clean
-  //   {
-  //     all glove: doc.(leftHand+rightHand).pre[0] |
-  //       glove.inner.pre->False->pre in contaminated
-
-  //     // 2.2. if only one glove on each hand, the both gloves must be clean on all 4 sides
-  //     (#doc.(leftHand+rightHand).pre.elems = 2) => {
-  //       all glove: doc.(leftHand+rightHand).pre[0] |
-  //         (glove.outer.pre -> False -> pre)
-  //          in contaminated
-  //     }
-  //   }
-  //   and
-  //   // 3. the glove side that touches the patient must be clean
-  //   all lastGlove: (doc.(leftHand+rightHand).pre).last |
-  //     lastGlove.outer.pre -> False -> pre in contaminated
-  // }
+  // precondition: clean gloves
+  all doc: Doctor {
+    // 1st. must put on gloves
+    #doc.leftHand.pre.elems>0 and #doc.rightHand.pre.elems>0
+    and
+    {
+      // 2nd. if only one glove on each hand, the both gloves must be clean on all 4 sides
+      (#doc.(leftHand+rightHand).pre.elems = 2) => {
+        all glove: doc.(leftHand+rightHand).pre[0] |
+          (glove.outer.pre -> False -> pre)
+           in contaminated
+      }
+    }
+    and
+    // 3. the glove's outer side that touches the patient must be clean
+    all lastGlove: (doc.(leftHand+rightHand).pre).last |
+      lastGlove.outer.pre -> False -> pre in contaminated
+  }
 
 
-  // // postcondition: outer gloves not clean, everything else stays the same
-  // let doc = Doctor {
-  //   // 1st. glove sequences stay the same
-  //   doc.leftHand.post = doc.leftHand.pre
-  //   and
-  //   doc.rightHand.post = doc.rightHand.pre
+  // postcondition: outer gloves not clean, everything else stays the same
+  let doc = Doctor {
+    // 1st. glove sequences stay the same
+    doc.leftHand.post = doc.leftHand.pre
+    and
+    doc.rightHand.post = doc.rightHand.pre
 
-  //   // 2nd. last glove's outer-side would be contaminated
-  //   all lastGlove: (doc.(leftHand+rightHand).pre).last |
-  //     let outer = lastGlove.outer.pre {
-  //       all s:(GloveSide - outer) | s.contaminated.pre = s.contaminated.post
-  //       and
-  //       outer.contaminated.post = True
-  //     }
-  // }
+    // 2st. during a surgery, no glove changes its state
+    all g:Glove|
+      g.inner.pre = g.inner.post
+      and
+      g.outer.pre = g.outer.post
+
+    // 3rd. last glove's outer-side would be contaminated
+    doc.leftHand.pre.last.outer.pre->True->post in contaminated
+    doc.rightHand.pre.last.outer.pre->True->post in contaminated
+    all s:(GloveSide - doc.leftHand.pre.last.outer.pre - doc.rightHand.pre.last.outer.pre) | s.contaminated.pre = s.contaminated.post
+  }
 }
 
 sig TakeGlovesOff extends Event {
@@ -181,9 +184,9 @@ fact transitions {
           ) => e in TakeGlovesOff
         }
 
-        // let gs = GloveSide {
-        //   gs.contaminated.t' != gs.contaminated.t => e in Operate
-        // }
+        all gs: GloveSide {
+          gs.contaminated.t' != gs.contaminated.t => e in Operate
+        }
       }
   no t: Time - T0/last |
       let t' = t.next |
@@ -228,10 +231,25 @@ fact oneEventTime {
   }
 }
 
+fact crossContamination {
+  all t: Time - T0/last |
+     let t' = t.next |
+      let doc = Doctor |
+        let golves = doc.(leftHand+rightHand).t |
+          all disj i, i': golves.inds |
+            ( 
+              #golves>1
+              and
+              i'>i
+              and
+              i'-i=1
+              and
+              golves[i].outer.t.contaminated.t = True
+            ) => {
+              golves[i'].inner.t'.contaminated.t' = True
+            }
+}
+
 run {
-  // all three patients operated
-  some t: Time|
-    #Doctor.leftHand.t = 1
-    and
-    #Doctor.rightHand.t = 1
-} for 10 but exactly 4 Glove, exactly 3 Patient, 4 seq, exactly 4 Time, exactly 3 Event, exactly 0 Operate
+  #Operate = #Patient
+} for 10 but exactly 4 Glove, exactly 3 Patient, 4 seq, exactly 11 Time
