@@ -207,7 +207,7 @@ fact inv {
   no Event.post & T0/first
 }
 
-fact glove {
+fact gloveRules {
   #GloveSide = mul[#Glove, 2]
   
   // each glove side always belongs to only one glove
@@ -220,12 +220,13 @@ fact glove {
       no g.outer.t & g'.inner.t
 }
 
-// sequential
-fact oneEventTime {
-  // one operation at a time
+fact eventRules {
+  // sequential
   all disj e,e': Event {
     no e.pre & e'.pre
   }
+
+  // one operation at a time
   all disj o,o': Operate {
     no o.patient & o'.patient
   }
