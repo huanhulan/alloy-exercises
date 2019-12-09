@@ -10,10 +10,10 @@
 module exercises/gloves
 
 open util/ordering[Time] as T0
-open util/boolean
-open util/integer
+open util/boolean -- Boolean type declaration
+open util/integer -- for integer operation
 
-sig Time{}
+sig Time {}
 
 sig GloveSide {
   // sides can get contaminated over time
@@ -59,10 +59,8 @@ one sig Doctor {
       // one glove can only fit one hand
       no leftHand.t.elems & rightHand.t.elems
       // The doctor can't copy gloves on her hands
-      all disj i,i': (leftHand.t).inds |
-          leftHand.t[i] != leftHand.t[i']
-      all disj i,i': (rightHand.t).inds |
-          rightHand.t[i] != rightHand.t[i']
+      noCopiesOfGloves[leftHand.t]
+      noCopiesOfGloves[rightHand.t]
 
       // The doctor must not come into contact with any patient's blood
       all glove: (leftHand+rightHand).t[0] |
@@ -245,6 +243,11 @@ pred crossContaminationCondition[glove: Glove, glovesOnHand: seq Glove, pre, pos
         glove.inner.pre->True->pre in contaminated
       ) =>
         glovesOnHand.last.outer.post.contaminated.pre = True 
+}
+
+pred noCopiesOfGloves[gloves: seq Glove] {
+  all disj i,i': gloves.inds |
+      gloves[i] != gloves[i']
 }
 
 run {
