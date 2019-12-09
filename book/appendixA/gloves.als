@@ -78,42 +78,27 @@ abstract sig Event {
 sig Operate extends Event {
   patient: one Patient
 }{
-  // precondition: clean gloves
+  noSideChanges[this]
   all doc: Doctor {
+    // precondition: clean gloves
     // 1st. must put on gloves
     #doc.leftHand.pre.elems>0 and #doc.rightHand.pre.elems>0
+    // 2nd. the glove's outer side that touches the patient must be clean
+    doc.leftHand.pre.last.outer.pre->False->pre in contaminated
     and
-    {
-      // 2nd. if only one glove on each hand, the both gloves must be clean on all 4 sides
-      (#doc.(leftHand+rightHand).pre.elems = 2) => {
-        all glove: doc.(leftHand+rightHand).pre[0] |
-          (glove.outer.pre -> False -> pre)
-           in contaminated
-      }
-    }
-    and
-    // 3. the glove's outer side that touches the patient must be clean
-    all lastGlove: (doc.(leftHand+rightHand).pre).last |
-      lastGlove.outer.pre -> False -> pre in contaminated
-  }
+    doc.rightHand.pre.last.outer.pre->False->pre in contaminated
 
-
-  // postcondition: outer gloves not clean, everything else stays the same
-  let doc = Doctor {
+    // postcondition: outer gloves not clean, everything else stays the same
     // 1st. glove sequences stay the same
     doc.leftHand.post = doc.leftHand.pre
     and
     doc.rightHand.post = doc.rightHand.pre
 
-    // 2st. during a surgery, no glove changes its state
-    all g:Glove|
-      g.inner.pre = g.inner.post
-      and
-      g.outer.pre = g.outer.post
-
-    // 3rd. last glove's outer-side would be contaminated
+    // 2nd. last glove's outer-side would be contaminated
     doc.leftHand.pre.last.outer.pre->True->post in contaminated
+    and
     doc.rightHand.pre.last.outer.pre->True->post in contaminated
+
     all s:(GloveSide - doc.leftHand.pre.last.outer.pre - doc.rightHand.pre.last.outer.pre) | s.contaminated.pre = s.contaminated.post
   }
 }
@@ -143,6 +128,7 @@ sig TakeGlovesOff extends Event {
 sig PutGlovesOn extends Event {
   glove: one Glove
 } {
+  noSideChanges[this]
   (
     glove not in ((Doctor.leftHand + Doctor.rightHand).pre).elems
     and
@@ -154,11 +140,17 @@ sig PutGlovesOn extends Event {
       Doctor.rightHand.pre = Doctor.rightHand.post
       and
       Doctor.leftHand.post.butlast = Doctor.leftHand.pre
+      
+      crossContaminationCondition[glove, Doctor.leftHand.pre, pre, post]
     }
     else
+    {
       Doctor.leftHand.pre = Doctor.leftHand.post
       and
       Doctor.rightHand.post.butlast = Doctor.rightHand.pre
+      
+      crossContaminationCondition[glove, Doctor.rightHand.pre, pre, post]
+    }
   }
 }
 
@@ -232,25 +224,29 @@ fact eventRules {
   }
 }
 
-fact crossContamination {
-  all t: Time - T0/last |
-     let t' = t.next |
-      let doc = Doctor |
-        let golves = doc.(leftHand+rightHand).t |
-          all disj i, i': golves.inds |
-            ( 
-              #golves>1
-              and
-              i'>i
-              and
-              i'-i=1
-              and
-              golves[i].outer.t.contaminated.t = True
-            ) => {
-              golves[i'].inner.t'.contaminated.t' = True
-            }
+pred noSideChanges[e: Event] {
+  let pre = e.pre | 
+    let post = e.post |
+      // during a surgery, no glove changes its state
+      all g:Glove|
+        g.inner.pre = g.inner.post
+        and
+        g.outer.pre = g.outer.post
+}
+
+pred crossContaminationCondition[glove: Glove, glovesOnHand: seq Glove, pre, post: Time] {
+    #glovesOnHand > 0 =>
+      (
+        glovesOnHand.last.outer.pre->True->pre in contaminated
+      ) =>
+        glove.inner.post.contaminated.post = True 
+      else
+      (
+        glove.inner.pre->True->pre in contaminated
+      ) =>
+        glovesOnHand.last.outer.post.contaminated.pre = True 
 }
 
 run {
   #Operate = 3
-} for 10 but exactly 4 Glove, exactly 3 Patient, 4 seq, exactly 11 Time
+} for 12 but exactly 4 Glove, exactly 8 GloveSide, exactly 3 Patient, 4 seq
