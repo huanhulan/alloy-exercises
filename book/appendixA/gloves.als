@@ -76,7 +76,7 @@ abstract sig Event {
 sig Operate extends Event {
   patient: one Patient
 }{
-  noSideChanges[this]
+  noSideChanges[this, none]
   all doc: Doctor {
     // precondition: clean gloves
     // 1st. must put on gloves
@@ -104,6 +104,7 @@ sig Operate extends Event {
 sig TakeGlovesOff extends Event {
   glove: one Glove
 } {
+  noSideChanges[this, glove]
   (
     glove in ((Doctor.leftHand + Doctor.rightHand).pre).last
     and
@@ -126,7 +127,7 @@ sig TakeGlovesOff extends Event {
 sig PutGlovesOn extends Event {
   glove: one Glove
 } {
-  noSideChanges[this]
+  noSideChanges[this, glove]
   (
     glove not in ((Doctor.leftHand + Doctor.rightHand).pre).elems
     and
@@ -222,11 +223,11 @@ fact eventRules {
   }
 }
 
-pred noSideChanges[e: Event] {
+pred noSideChanges[e: Event, except: set Glove] {
   let pre = e.pre | 
     let post = e.post |
       // during a surgery, no glove changes its state
-      all g:Glove|
+      all g:Glove - except|
         g.inner.pre = g.inner.post
         and
         g.outer.pre = g.outer.post
@@ -235,14 +236,18 @@ pred noSideChanges[e: Event] {
 pred crossContaminationCondition[glove: Glove, glovesOnHand: seq Glove, pre, post: Time] {
     #glovesOnHand > 0 =>
       (
-        glovesOnHand.last.outer.pre->True->pre in contaminated
+        getContaminated[glovesOnHand.last.outer.pre, pre]
       ) =>
-        glove.inner.post.contaminated.post = True 
+        getContaminated[glove.inner.post, post]
       else
       (
-        glove.inner.pre->True->pre in contaminated
+        getContaminated[glove.inner.pre, pre]
       ) =>
-        glovesOnHand.last.outer.post.contaminated.pre = True 
+        getContaminated[glovesOnHand.last.outer.post, post]
+}
+
+pred getContaminated[gs: GloveSide, t: Time] {
+  gs->True->t in contaminated
 }
 
 pred noCopiesOfGloves[gloves: seq Glove] {
