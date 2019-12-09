@@ -82,9 +82,9 @@ sig Operate extends Event {
     // 1st. must put on gloves
     #doc.leftHand.pre.elems>0 and #doc.rightHand.pre.elems>0
     // 2nd. the glove's outer side that touches the patient must be clean
-    doc.leftHand.pre.last.outer.pre->False->pre in contaminated
+    notContaminated[doc.leftHand.pre.last.outer.pre, pre]
     and
-    doc.rightHand.pre.last.outer.pre->False->pre in contaminated
+    notContaminated[doc.rightHand.pre.last.outer.pre, pre]
 
     // postcondition: outer gloves not clean, everything else stays the same
     // 1st. glove sequences stay the same
@@ -93,9 +93,9 @@ sig Operate extends Event {
     doc.rightHand.post = doc.rightHand.pre
 
     // 2nd. last glove's outer-side would be contaminated
-    doc.leftHand.pre.last.outer.pre->True->post in contaminated
+    getContaminated[doc.leftHand.post.last.outer.post, post]
     and
-    doc.rightHand.pre.last.outer.pre->True->post in contaminated
+    getContaminated[doc.rightHand.post.last.outer.post, post]
 
     all s:(GloveSide - doc.leftHand.pre.last.outer.pre - doc.rightHand.pre.last.outer.pre) | s.contaminated.pre = s.contaminated.post
   }
@@ -246,8 +246,16 @@ pred crossContaminationCondition[glove: Glove, glovesOnHand: seq Glove, pre, pos
         getContaminated[glovesOnHand.last.outer.post, post]
 }
 
+pred genContamination[gs: GloveSide, t: Time, b: Bool] {
+  gs->b->t in contaminated
+}
+
+pred notContaminated[gs: GloveSide, t: Time] {
+  genContamination[gs, t, False]
+}
+
 pred getContaminated[gs: GloveSide, t: Time] {
-  gs->True->t in contaminated
+  genContamination[gs, t, True]
 }
 
 pred noCopiesOfGloves[gloves: seq Glove] {
