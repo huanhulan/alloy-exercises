@@ -46,17 +46,20 @@ abstract sig StateMachine {
 
   no traceLables & transitionLabels
 
+  no disj l,l': traceLables|
+    traces[l] = traces[l']
+
   all tl: traceLables |
     let trace = traces[tl] {
       transition[trace[0]].states = initialState
+      and
+      noDuplicates[trace]
       and
       all idx: trace.inds - trace.lastIdx |
         let next = idx.next |
           let curLabel = trace[idx] |
             let nextLabel = trace[next] |
               let composed = transition[curLabel].(transition[nextLabel]) {
-                noDuplicates[trace]
-                and
                 transition[curLabel][states] = transition[nextLabel].states
                 and
                 composed.states in states
@@ -97,10 +100,10 @@ run {
   #M2.transitionLabels>1
   and
   some m: StateMachine|
-    let traces = m.traces|
+    some traces: m.traces|
       let traceLabel = m.traceLables |
         let trace = traces[traceLabel] |
-          #trace>2
+          #trace.inds>=2
 } for 3 but exactly 6 State, exactly 12 String, 5 seq
 
 assert noCrossState {
