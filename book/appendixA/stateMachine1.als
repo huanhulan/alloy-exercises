@@ -50,23 +50,24 @@ abstract sig StateMachine {
     traces[l] = traces[l']
 
   all tl: traceLables |
-    let trace = traces[tl] {
-      transition[trace[0]].states = initialState
-      and
-      noDuplicates[trace]
-      and
-      all idx: trace.inds - trace.lastIdx |
-        let next = idx.next |
-          let curLabel = trace[idx] |
-            let nextLabel = trace[next] |
-              let composed = transition[curLabel].(transition[nextLabel]) {
+    let trace = traces[tl] |
+      let firstTransLabel = trace[0] |
+        let firstTrans = transition[firstTransLabel] {
+        #initialState.firstTrans >= 1
+        and
+        noDuplicates[trace]
+        and
+        all idx: trace.inds - trace.lastIdx |
+          let next = idx.next |
+            let curLabel = trace[idx] |
+              let nextLabel = trace[next] |
                 transition[curLabel][states] = transition[nextLabel].states
-                and
-                composed.states in states
-                and
-                states.composed in states
-              }
     }
+}
+
+sig Simulation {
+  domain, codomain: StateMachine,
+  r: State -> State
 }
 
 fact noCrossTransition {
