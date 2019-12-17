@@ -46,8 +46,25 @@ abstract sig StateMachine {
 
   no traceLables & transitionLabels
 
+  // no isolate states
+  all s: states |
+    some transitionLabels.transition.s or
+    some transitionLabels.transition[s]
+
   no disj l,l': traceLables|
     traces[l] = traces[l']
+
+  all disj transL, transL': transitionLabels|
+    let f = transition[transL] |
+      let g = transition[transL'] |
+        f[states] = g.states => {
+          some tl: traceLables |
+            let trace = traces[tl] |
+              let idx = trace.inds - trace.lastIdx |
+                trace[idx] = transL
+                and
+                trace[idx.next] = transL'
+        }
 
   all tl: traceLables |
     let trace = traces[tl] |
