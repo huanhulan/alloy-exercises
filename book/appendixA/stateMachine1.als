@@ -14,6 +14,7 @@ associated trace sets.
 (j) If there is simulation between two machines, must they have the same trace set? Use Alloy to check this hypothesis. How about a bisimulation?
 */
 sig State {
+  succesor: some State
 }
 
 abstract sig StateMachine {
@@ -24,61 +25,54 @@ abstract sig StateMachine {
   traceLables: some String,
   traces: traceLables one -> (seq transitionLabels),
 } {
-  all label: transitionLabels |
-    // all transition happens within machine's states
-    transition[label].State in states
-    and
-    transition[label][State] in states
-    and
-    // different transition has different labels
-    #transition[label][State] = 1
-    and
-    #transition[label].State = 1
 
-  no disj l,l': transitionLabels|
-    transition[l] = transition[l']
-
-  // all inital state has a transition
-  some transition[transitionLabels][initialState]
-
-  transition.State.State in transitionLabels
   initialState in states
 
+  no disj l,l': transitionLabels | transition[l] = transition[l']
+  // no leaky states within an state machine
+  // and
+  // transition is just an syncronym of succesor
+  all tl: transitionLabels {
+    let transition = transition[tl] {
+      #transition = 1
+      and
+      #State.transition = 1
+      and
+      #transition[State] = 1
+    }
+  }
+
+  transition.State.State in transitionLabels
+  and
+  all s: states | s.*succesor in states
+
+  reachable[this]
+  and
+  states <: succesor = transitionLabels.transition
+
   no traceLables & transitionLabels
-
-  // no isolate states
-  all s: states |
-    some transitionLabels.transition.s or
-    some transitionLabels.transition[s]
-
-  no disj l,l': traceLables|
-    traces[l] = traces[l']
-
-  all disj transL, transL': transitionLabels|
-    let f = transition[transL] |
-      let g = transition[transL'] |
-        f[states] = g.states => {
-          some tl: traceLables |
-            let trace = traces[tl] |
-              let idx = trace.inds - trace.lastIdx |
-                trace[idx] = transL
-                and
-                trace[idx.next] = transL'
-        }
+  and
+  // all trace are different
+  no disj l,l': traceLables| traces[l] = traces[l']
 
   all tl: traceLables |
-    let trace = traces[tl] |
-      let firstTransLabel = trace[0] |
-        let firstTrans = transition[firstTransLabel] {
-        #initialState.firstTrans >= 1
-        and
-        noDuplicates[trace]
-        and
+    let trace = traces[tl] {
+      noDuplicates[trace]
+      // all trace begin with an intial state
+      let firstTransLabel = trace[0] {
+        let firstTransition = transition[firstTransLabel] {
+          one firstTransition.State & initialState
+        }
+      }
+      #trace > 1 => {
+        // and follow the rule of compositionality
         all idx: trace.inds - trace.lastIdx |
-          let next = idx.next |
-            let curLabel = trace[idx] |
-              let nextLabel = trace[next] |
-                transition[curLabel][states] = transition[nextLabel].states
+          let nextIdx = idx.next |
+            let f = transition[trace[idx]] |
+              let g = transition[trace[nextIdx]] {
+                f[State] = g.State
+              }
+      }
     }
 }
 
@@ -108,6 +102,11 @@ pred noDuplicates[trace: seq String] {
       trace[i] != trace[i']
 }
 
+pred reachable[m: StateMachine] {
+  some i: m.initialState |
+    all s: m.states - m.initialState |
+      s in i.^succesor
+}
 
 one sig M1 extends StateMachine{}
 one sig M2 extends StateMachine{}
@@ -116,13 +115,16 @@ run {
   #M1.transitionLabels>1
   and
   #M2.transitionLabels>1
+  // and
+  // some m: StateMachine|
+  //   some traces: m.traces|
+  //     let traceLabel = m.traceLables |
+  //       let trace = traces[traceLabel] |
+  //         #trace.inds>=2
   and
   some m: StateMachine|
-    some traces: m.traces|
-      let traceLabel = m.traceLables |
-        let trace = traces[traceLabel] |
-          #trace.inds>=2
-} for 3 but exactly 6 State, exactly 12 String, 5 seq
+    #m.initialState < #m.states
+} for 3 but exactly 5 State, exactly 7 String, 3 seq
 
 assert noCrossState {
   M1.transition[String].State not in M2.transition[String].State
