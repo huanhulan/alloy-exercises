@@ -1,7 +1,7 @@
 /*
 Consider two state machines M1 and M2 with labeled transitions. A relation r from the states of M1 to the states of M2 is a simulation of M1 in M2
 if and only if
-· whenever r relates a state s1 in M1 to a state s2 in M2, and M1 has a simulation labeled 'a' from s1 to s1’, M2 also has a simulation labeled a
+· whenever r relates a state s1 in M1 to a state s2 in M2, and M1 has a simulation labeled 'a' from s1 to s1’, M2 also has a simulation labeled 'a'
 from s2 to s2’ for some s2’ related by r to s1’, and
 · whenever s1 is an initial state of M1, there is an initial state s2 of M2 where s1 and s2 are related by r
 
@@ -21,19 +21,18 @@ abstract sig StateMachine {
   states: disj some State,
   initialState: disj some State,
   transitionLabels: disj some String,
-  transition: String -> State -> State,
+  transitions: String -> State -> State,
   traceLables: disj some String,
   traces: traceLables one -> (seq transitionLabels),
 } {
-
   initialState in states
 
-  no disj l,l': transitionLabels | transition[l] = transition[l']
+  no disj l,l': transitionLabels | transitions[l] = transitions[l']
   // no leaky states within an state machine
   // and
   // transition is just an syncronym of succesor
   all transitionLabel: transitionLabels {
-    let transition = transition[transitionLabel] {
+    let transition = transitions[transitionLabel] {
       #transition = 1
       and
       #State.transition = 1
@@ -42,13 +41,13 @@ abstract sig StateMachine {
     }
   }
 
-  transition.State.State in transitionLabels
+  transitions.State.State in transitionLabels
   and
   all s: states | s.*succesor in states
 
   reachable[this]
   and
-  states <: succesor = transition[transitionLabels]
+  states <: succesor = transitions[transitionLabels]
 
   no traceLables & transitionLabels
   and
@@ -61,15 +60,15 @@ abstract sig StateMachine {
         noDuplicates[trace]
         // all trace begin with an intial state
         let firstTransLabel = trace[0] {
-          let firstTransition = transition[firstTransLabel] {
+          let firstTransition = transitions[firstTransLabel] {
             firstTransition.State in initialState
           }
         }
         // and follow the rule of compositionality
         all idx: trace.inds - trace.lastIdx |
           let nextIdx = idx.next |
-            let f = transition[trace[idx]] |
-              let g = transition[trace[nextIdx]] {
+            let f = transitions[trace[idx]] |
+              let g = transitions[trace[nextIdx]] {
                 f[State] = g.State
               }
       }
@@ -77,8 +76,34 @@ abstract sig StateMachine {
 }
 
 sig Simulation {
-  domain, codomain: StateMachine,
+  domain, codomain: one StateMachine,
   r: State -> State
+} {
+  domain != codomain
+  r in domain.states -> one codomain.states
+  some i: domain.initialState -> one codomain.initialState |
+    i in r
+  simulationRelation[domain, codomain, r]
+}
+
+sig Bisimulation in Simulation {}{
+  simulationRelation[domain, codomain, r]
+  and
+  simulationRelation[domain, codomain, ~r]
+}
+
+pred simulationRelation[domain, codomain: StateMachine, r: State -> State] {
+  all transitionLabel: domain.transitionLabels |
+    let t = domain.transitions[transitionLabel] |
+      let s1 = t.State {
+        let f = s1 -> codomain.states {
+          f in r => {
+            let s2 = f[s1] |
+              let s1' = t[s1] |
+                s2 -> r[s1'] in codomain.transitions[codomain.transitionLabels]
+          }
+        }
+      }
 }
 
 fact noLeakStates {
@@ -117,13 +142,13 @@ run {
 } for 3 but exactly 5 State, exactly 7 String, 3 seq
 
 assert noCrossState {
-  M1.transition[String].State not in M2.transition[String].State
+  M1.transitions[String].State not in M2.transitions[String].State
   and
-  M1.transition[String].State not in M2.transition[String][State]
+  M1.transitions[String].State not in M2.transitions[String][State]
   and
-  M2.transition[String].State not in M1.transition[String].State
+  M2.transitions[String].State not in M1.transitions[String].State
   and
-  M2.transition[String].State not in M1.transition[String][State]
+  M2.transitions[String].State not in M1.transitions[String][State]
 }
 
 check noCrossState for 3 but exactly 6 State, exactly 12 String, 5 seq
