@@ -23,11 +23,15 @@ abstract sig StateMachine {
   transitionLabels: disj some String,
   transitions: String -> State -> State,
   traceLables: disj some String,
-  traces: traceLables one -> (seq transitionLabels),
+  traces: traceLables -> (seq transitionLabels),
 } {
   initialState in states
 
   no disj l,l': transitionLabels | transitions[l] = transitions[l']
+  no disj t,t': traceLables | traces[t] = traces[t']
+  no traceLables & transitionLabels
+
+-- transition rules start
   // no leaky states within an state machine
   // and
   // transition is just an syncronym of succesor
@@ -48,31 +52,39 @@ abstract sig StateMachine {
   reachable[this]
   and
   states <: succesor = transitions[transitionLabels]
+-- transition rules ends
 
-  no traceLables & transitionLabels
-  and
-  // all trace are different
-  no disj traceLable,traceLable': traceLables| traces[traceLable] = traces[traceLable']
+-- trace rules start
+  #traces = #traceLables
 
-  all traceLabel: traceLables |
-    let trace = traces[traceLabel] {
-      #trace > 1 => {
-        noDuplicates[trace]
-        // all trace begin with an intial state
-        let firstTransLabel = trace[0] {
-          let firstTransition = transitions[firstTransLabel] {
-            firstTransition.State in initialState
+  some initialState.succesor => {
+    #traceLables > 0
+    // all traces are different
+    #traceLables > 1 => no disj traceLable,traceLable': traceLables| traces[traceLable] = traces[traceLable']
+    all traceLable: traceLables {
+      // every trace begins with an initial state
+      let trace = traces[traceLable] {
+        let transitionLable = trace[0] {
+          let transition = transitions[transitionLable] {
+            transition.State in initialState
           }
         }
-        // and follow the rule of compositionality
-        all idx: trace.inds - trace.lastIdx |
-          let nextIdx = idx.next |
-            let f = transitions[trace[idx]] |
-              let g = transitions[trace[nextIdx]] {
-                f[State] = g.State
-              }
-      }
+        #trace > 1 => {
+          // all transitions are different
+          noDuplicates[trace]
+          and
+          // and follow the rule of compositionality
+          all idx: trace.inds - trace.lastIdx |
+            let nextIdx = idx.next |
+              let f = transitions[trace[idx]] |
+                let g = transitions[trace[nextIdx]] {
+                  f[State] = g.State
+                }
+        }
+       }
     }
+  }
+-- trace rules ends
 }
 
 sig Simulation {
@@ -114,6 +126,8 @@ fact noLeakStates {
 
 pred noDuplicates[trace: seq String] {
   all disj i,i': trace.inds |
+      #trace>=2
+      and
       trace[i] != trace[i']
 }
 
@@ -130,16 +144,16 @@ run {
   #M1.transitionLabels>1
   and
   #M2.transitionLabels>1
-  and
-  some m: StateMachine|
-    some traces: m.traces|
-      let traceLabel = m.traceLables |
-        let trace = traces[traceLabel] |
-          #trace.inds>=2
-  and
+  // and
+  // some m: StateMachine|
+  //   some traces: m.traces|
+  //     let traceLabel = m.traceLables |
+  //       let trace = traces[traceLabel] |
+  //         #trace.inds>=2
+  // and
   some m: StateMachine|
     #m.initialState < #m.states
-} for 3 but exactly 5 State, exactly 7 String, 3 seq
+} for 3 but exactly 5 State, exactly 7 String, 4 seq
 
 assert noCrossState {
   M1.transitions[String].State not in M2.transitions[String].State
