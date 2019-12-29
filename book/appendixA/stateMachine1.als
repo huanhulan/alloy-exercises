@@ -55,7 +55,7 @@ abstract sig StateMachine {
 -- transition rules ends
 
 -- trace rules start
-  #traces = #traceLables
+  no t: traceLables | #traces[t] = 0
 
   some initialState.succesor => {
     #traceLables > 0
@@ -108,12 +108,10 @@ pred simulationRelation[domain, codomain: StateMachine, r: State -> State] {
   all transitionLabel: domain.transitionLabels |
     let t = domain.transitions[transitionLabel] |
       let s1 = t.State {
-        let f = s1 -> codomain.states {
-          f in r => {
-            let s2 = f[s1] |
+        some f: r {
+          let s2 = f[s1] |
               let s1' = t[s1] |
                 s2 -> r[s1'] in codomain.transitions[codomain.transitionLabels]
-          }
         }
       }
 }
@@ -144,15 +142,17 @@ run {
   #M1.transitionLabels>1
   and
   #M2.transitionLabels>1
-  // and
-  // some m: StateMachine|
-  //   some traces: m.traces|
-  //     let traceLabel = m.traceLables |
-  //       let trace = traces[traceLabel] |
-  //         #trace.inds>=2
-  // and
+  and
   some m: StateMachine|
+    some traces: m.traces|
+      let traceLabel = m.traceLables |
+        let trace = traces[traceLabel] |
+          #trace=3
+  and
+  all m: StateMachine|
     #m.initialState < #m.states
+  and
+  some Bisimulation
 } for 3 but exactly 5 State, exactly 7 String, 4 seq
 
 assert noCrossState {
