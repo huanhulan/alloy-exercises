@@ -14,15 +14,15 @@ associated trace sets.
 (j) If there is simulation between two machines, must they have the same trace set? Use Alloy to check this hypothesis. How about a bisimulation?
 */
 sig State {
-  succesor: some State
+  succesor: disj some State
 }
 
 abstract sig StateMachine {
-  states: some State,
-  initialState: some State,
-  transitionLabels: some String,
+  states: disj some State,
+  initialState: disj some State,
+  transitionLabels: disj some String,
   transition: String -> State -> State,
-  traceLables: some String,
+  traceLables: disj some String,
   traces: traceLables one -> (seq transitionLabels),
 } {
 
@@ -32,13 +32,13 @@ abstract sig StateMachine {
   // no leaky states within an state machine
   // and
   // transition is just an syncronym of succesor
-  all tl: transitionLabels {
-    let transition = transition[tl] {
+  all transitionLabel: transitionLabels {
+    let transition = transition[transitionLabel] {
       #transition = 1
       and
       #State.transition = 1
       and
-      #transition[State] = 1
+      #transition.State = 1
     }
   }
 
@@ -48,23 +48,23 @@ abstract sig StateMachine {
 
   reachable[this]
   and
-  states <: succesor = transitionLabels.transition
+  states <: succesor = transition[transitionLabels]
 
   no traceLables & transitionLabels
   and
   // all trace are different
-  no disj l,l': traceLables| traces[l] = traces[l']
+  no disj traceLable,traceLable': traceLables| traces[traceLable] = traces[traceLable']
 
-  all tl: traceLables |
-    let trace = traces[tl] {
-      noDuplicates[trace]
-      // all trace begin with an intial state
-      let firstTransLabel = trace[0] {
-        let firstTransition = transition[firstTransLabel] {
-          one firstTransition.State & initialState
-        }
-      }
+  all traceLabel: traceLables |
+    let trace = traces[traceLabel] {
       #trace > 1 => {
+        noDuplicates[trace]
+        // all trace begin with an intial state
+        let firstTransLabel = trace[0] {
+          let firstTransition = transition[firstTransLabel] {
+            firstTransition.State in initialState
+          }
+        }
         // and follow the rule of compositionality
         all idx: trace.inds - trace.lastIdx |
           let nextIdx = idx.next |
@@ -79,16 +79,6 @@ abstract sig StateMachine {
 sig Simulation {
   domain, codomain: StateMachine,
   r: State -> State
-}
-
-fact noCrossTransition {
-  all disj m, m': StateMachine |
-    no m.transitionLabels & m'.transitionLabels
-}
-
-fact noCrossStates {
-  all disj m, m': StateMachine |
-    no m.states & m'.states
 }
 
 fact noLeakStates {
@@ -115,12 +105,12 @@ run {
   #M1.transitionLabels>1
   and
   #M2.transitionLabels>1
-  // and
-  // some m: StateMachine|
-  //   some traces: m.traces|
-  //     let traceLabel = m.traceLables |
-  //       let trace = traces[traceLabel] |
-  //         #trace.inds>=2
+  and
+  some m: StateMachine|
+    some traces: m.traces|
+      let traceLabel = m.traceLables |
+        let trace = traces[traceLabel] |
+          #trace.inds>=2
   and
   some m: StateMachine|
     #m.initialState < #m.states
