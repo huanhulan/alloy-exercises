@@ -98,10 +98,10 @@ sig Simulation {
   simulationRelation[domain, codomain, r]
 }
 
-sig Bisimulation in Simulation {}{
+sig Bisimulation extends Simulation {}{
   simulationRelation[domain, codomain, r]
   and
-  simulationRelation[domain, codomain, ~r]
+  simulationRelation[codomain, domain, ~r]
 }
 
 pred simulationRelation[domain, codomain: StateMachine, r: State -> State] {
@@ -166,3 +166,30 @@ assert noCrossState {
 }
 
 check noCrossState for 3 but exactly 6 State, exactly 12 String, 5 seq
+
+
+assert sameTraceSetForSimulation {
+  some s: Simulation {
+    let d = s.domain |
+      let r = s.codomain {
+        let t = d.traceLables |
+          some t': r.traceLables |
+            #d.traces[t] = #r.traces[t']
+      }
+  }
+}
+
+assert sameTraceSetForBiSimulation {
+  some s: Bisimulation {
+    let d = s.domain |
+      let r = s.codomain {
+        let t = d.traceLables |
+          some t': r.traceLables |
+            #d.traces[t] = #r.traces[t']
+      }
+  }
+}
+
+check sameTraceSetForSimulation for 3 but exactly 5 State, exactly 7 String, 4 seq, exactly 1 Simulation
+
+check sameTraceSetForBiSimulation for 3 but exactly 5 State, exactly 7 String, 4 seq, exactly 1 Bisimulation
