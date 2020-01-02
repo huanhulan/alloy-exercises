@@ -11,8 +11,8 @@
 sig Segment{
   next, overlaps: set Segment
 }{
-  this not in next
-  this in overlaps
+  // this not in next --non-reflexitive
+  this in overlaps --reflexitive
 }
 
 /*
@@ -23,11 +23,18 @@ sig Segment{
 * very ab- stractly, the physical layout of the track, mapping a segment s1 to a segment s2 
 * when it would be dangerous for one train to be on s1 and another to be on s2 at the same time.
 */
-fact {
-  ~overlaps in overlaps
+fact selfOverlapping{
+  ~overlaps in overlaps --symmetic
 }
 
 sig Train {}
+
+/*
+* (c) Declare a signature Train to represent a set of trains, and a signature 'TrainState',
+* with a relation on from Train to Segment to represent their positions.(Remember that each train can occupy only a single segment.) 
+* Define an additional feld 'occupied' in 'TrainState' that holds the set of segments occupied by trains.
+* Generate and visualize some sample states; you’ll probably want to use coloring to indicate the occupied the segments.
+*/
 sig TrainState {
   on: Train -> lone Segment,
   occupied: set Segment
@@ -35,4 +42,20 @@ sig TrainState {
   occupied = on[Train]
 }
 
-run {} for 3
+pred Safe [x: TrainState] {all s: Segment | lone ~(x.on)[s.overlaps]}
+
+/*
+* (d) To describe all physically possible train movements, introduce an
+* operation on 'TrainState' that takes as arguments two train states
+* (representing the pre- and poststates), and a set of trains that move,
+* and constrains the train states so that, in this step, each train that
+* moves passes from a segment to one of its successors under the
+* next relation. Generate and visualize some sample executions of this
+* operation.
+*/
+pred TrainsMove [currentState, nextState: TrainState, trainsOnRails: set Train] {
+  all t: trainsOnRails | t.(nextState.on) in t.(currentState.on).next
+  all t: Train - trainsOnRails | t.(nextState.on) = t.(currentState.on)
+  }
+
+run Safe for 3
