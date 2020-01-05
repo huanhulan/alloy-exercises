@@ -42,7 +42,6 @@ sig TrainState {
   occupied = on[Train]
 }
 
-pred Safe [x: TrainState] {all s: Segment | lone ~(x.on)[s.overlaps]}
 
 /*
 * (d) To describe all physically possible train movements, introduce an
@@ -58,4 +57,58 @@ pred TrainsMove [currentState, nextState: TrainState, trainsOnRails: set Train] 
   all t: Train - trainsOnRails | t.(nextState.on) = t.(currentState.on)
   }
 
-run Safe for 3
+/*
+* To model the signaling system, introduce a signature 'GateState' with
+* a feld 'closed' whose value is a set of segments, representing those
+* segments beyond which a train is not supposed to travel. Note that
+* there’s no need to introduce gates or lights as explicit atoms. Write
+* a predicate that captures legal movements whose arguments are a
+* 'GateState', a TrainState and a set of Trains that move.
+*/
+sig GateState {closed: set Segment}
+
+pred GatePolicy [g: GateState, x: TrainState] {
+  x.occupied.overlaps.~next in g.closed
+  all s1, s2: Segment | some s1.next.overlaps & s2.next => lone (s1+s2) - g.closed
+}
+
+/*
+* (f) Write a safety condition on TrainState saying that trains never occupy overlapping segments,
+* and generate some sample states that satisfy and violate the condition.
+*/
+pred Safe [x: TrainState] {all s: Segment | lone (x.on).(s.overlaps)}
+
+
+/*
+* (g) Write the policy as a predicate that takes as arguments a GateState and a TrainState.
+* It may say, for example, that if several occupied segments share a successor, 
+* then at most one can have an open gate
+*/
+assert PolicyWorks {
+  all x, x': TrainState, g: GateState, ts: set Train |
+    {
+      TrainsMoveLegal[x, x', g, ts]
+      Safe [x]
+    } => Safe [x']
+}
+
+/*
+* (h) write an assertion that says that when the trains move, if the mechanism obeys the gate policy,
+* and the train movements are legal, then a collision does not occur (that is, the system does not 
+* transition from a safe state to an unsafe state). Check this assertion, and if you fnd counterexamples,
+* study them carefully, and adjust your model. Most likely, your gate policy will be at fault.
+*/
+pred MayMove [g: GateState, x: TrainState, ts: set Train] {
+  no ts.(x.on) & g.closed
+}
+
+-- has counterexample in scope of 4
+check PolicyWorks for 2 Train, 1 GateState, 2 TrainState, 4 Segment
+
+pred TrainsMoveLegal [x, x': TrainState, g: GateState, ts: set Train] {
+  TrainsMove [x, x', ts]
+  MayMove [g, x, ts]
+  GatePolicy [g, x]
+}
+
+// run TrainsMoveLegal for 3
