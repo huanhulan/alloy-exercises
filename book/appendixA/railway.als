@@ -11,7 +11,7 @@
 sig Segment{
   next, overlaps: set Segment
 }{
-  // this not in next --non-reflexitive
+  this not in next --non-reflexitive
   this in overlaps --reflexitive
 }
 
@@ -68,8 +68,8 @@ pred TrainsMove [currentState, nextState: TrainState, trainsOnRails: set Train] 
 sig GateState {closed: set Segment}
 
 pred GatePolicy [g: GateState, x: TrainState] {
-  x.occupied.overlaps.~next in g.closed
-  all s1, s2: Segment | some s1.next.overlaps & s2.next => lone (s1+s2) - g.closed
+  next.(x.occupied.overlaps) in g.closed
+  all s1, s2: Segment | (some s1.next.overlaps & s2.next) => lone (s1+s2) - g.closed
 }
 
 /*
