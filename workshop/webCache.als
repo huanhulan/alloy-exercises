@@ -60,9 +60,11 @@ fun request[type: Type, param: Int]: set Asset {
 /*
 * 'Build' Event: represented by its 'BuildVersion', producing new 'Entry' and its 'Other' assets.
 * Also push its assets into 'Cloudfront' while has no effect on other elements.
+* All 'Asset' belongs to one dist of a 'Build'
 */
 sig Build extends Event{
-  v: disj BuildVersion
+  v: disj BuildVersion,
+  dist: disj set Asset
 }{
 
 }
