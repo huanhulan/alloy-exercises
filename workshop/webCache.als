@@ -13,13 +13,13 @@ one sig Cloudfront extends StaticFileService{}
 
 // empty uri&tag means that the asset has yet to be produced
 abstract sig Asset{
-  uri: lone Type,
-  v: lone BuildVersion,
+  uri: one Type,
+  v: one BuildVersion,
 }
 
 abstract sig Type {}
-sig Entry extends Type{}
-sig Other extends Type{}
+one sig Entry extends Type{}
+one sig Other extends Type{}
 
 abstract sig Event{
   pre, post: one Time
@@ -95,6 +95,8 @@ pred cacheInCloudFront[pre,post: Time, files: set Asset] {
 sig Request extends Event{
   response: set Asset
 }{
+  some (S3 + Cloudfront).assets[pre] => response != none
+
   let entry = request[Entry, pre, Int] |
     let other = request[Other, pre, none] {
       response = entry + other
@@ -105,6 +107,11 @@ sig Request extends Event{
 /*
 * facts
 */
+fact noConcurrentBuild{
+  all disj b, b': Build|
+    b.pre != b'.pre
+}
+
 fact {
   no StaticFileService.assets[Time/first] -- start with empty services
 }
@@ -114,7 +121,10 @@ fact EveryAssetBelongsToABuild{
 }
 
 fact transitions {
+  no Event.pre & Time/last
+  and
   no Event.post & Time/first
+
   all t: Time - Time/last |
     let t' = t.next |
       some e: Event { 
@@ -134,6 +144,13 @@ fact transitions {
         Cloudfront.assets[t'] != Cloudfront.assets[t] => e in Request
       }
 }
+
+-- test run
+run {
+  some Build
+  and
+  some Request
+} for 3 but exactly 3 Event,exactly 4 Asset, exactly 4 Time
 
 /*
 * check: for evey 'Request' event, its assets' versions are the same
