@@ -125,6 +125,14 @@ fact transitions {
   all disj e,e': Event {
     no e.pre & e'.pre
   }
+
+  	all t: Time-last |
+		let t' = t.next |
+			one e: Event {
+        e.pre = t and e.post = t'
+        S3.assets[t'] != S3.assets[t] <=> e in Build
+        Cloudfront.assets[t'] != Cloudfront.assets[t] => e in Request
+      }
 }
 
 /*
