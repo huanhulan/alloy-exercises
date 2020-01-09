@@ -37,6 +37,7 @@ fact transitions {
         e.pre = t 
         e.post = t'
       }
+  -- comment the following code to get concurrency
   all disj e,e': Event {
     no e.pre & e'.pre
   }
