@@ -25,29 +25,11 @@ abstract sig Event{
   pre, post: one Time
 }
 
-fact {
-  no StaticFileService.assets[Time/first]
-}
-
-fact transitions {
-  no Event.post & Time/first
-  all t: Time - Time/last |
-    let t' = t.next |
-      some e: Event { 
-        e.pre = t 
-        e.post = t'
-      }
-  -- comment the following code to get concurrency
-  all disj e,e': Event {
-    no e.pre & e'.pre
-  }
-}
-
 /*
 * determine whether there is cached version of wanted 'Type' of asset in a 'StaticFileService' under given 'Time'
 */
 fun inService[type: Type, store: StaticFileService, t: Time]: set Asset {
-  let matchedType = store.assets[t] | matchedType.uri & type
+  let matchedType = store.assets[t] | matchedType.uri = type => matchedType else none
 }
 
 /*
@@ -69,7 +51,7 @@ fun request[type: Type, t: Time, urlParam: Int]: set Asset {
 /*
 * 'Build' Event: represented by its 'BuildVersion', producing new 'Entry' and its 'Other' assets,
 * and 'BuildVersion' increments by each 'Build'.
-* Also push its assets into 'S3' while has no effect on other elements.
+* Also push its assets into 'S3' while has no effects on other elements.(TODO)
 * If the name is the same, Overwrite the file
 * every 'Asset' belongs to one dist of a 'Build'
 */
@@ -77,17 +59,31 @@ sig Build extends Event{
   v: disj BuildVersion,
   dist: disj set Asset
 }{
+  // rules for its assets
   dist.v = v
   #dist = 2
   all disj e,o: dist | e.uri != o.uri
+
+  // rules for S3
+  pushToS3[dist, pre, post]
 }
 
-fact {
-  Asset = Build.dist
+pred pushToS3[files: Asset, t,t': Time] {
+  all disj f: files|
+    let oldFile = inService[f.uri, S3, t] {
+      oldFile != none => S3.assets[t'] = S3.assets[t] - oldFile + files
+      else
+      S3.assets[t'] = S3.assets[t] + files
+    }
 }
 
-fun build[a: Asset, t:Type, v: BuildVersion]: Asset {
-
+pred cacheInCloudFront[pre,post: Time, files: set Asset] {
+  all disj f: files |
+    let cache = inService[f.uri, Cloudfront, pre] {
+      cache != none => Cloudfront.assets[post] = Cloudfront.assets[pre] -- cache found, do nothing
+      else
+      Cloudfront.assets[post] = Cloudfront.assets[pre] + f -- not found, set the cache
+    }
 }
 
 
@@ -99,11 +95,39 @@ fun build[a: Asset, t:Type, v: BuildVersion]: Asset {
 sig Request extends Event{
   response: set Asset
 }{
+  let entry = request[Entry, pre, Int] |
+    let other = request[Other, pre, none] {
+      response = entry + other
+      cacheInCloudFront[pre, post, entry + other]
+    }
+}
 
+/*
+* facts
+*/
+fact {
+  no StaticFileService.assets[Time/first] -- start with empty services
+}
+
+fact EveryAssetBelongsToABuild{
+  Asset = Build.dist
+}
+
+fact transitions {
+  no Event.post & Time/first
+  all t: Time - Time/last |
+    let t' = t.next |
+      some e: Event { 
+        e.pre = t 
+        e.post = t'
+      }
+  -- comment the following code to get concurrenct situations
+  all disj e,e': Event {
+    no e.pre & e'.pre
+  }
 }
 
 /*
 * check: for evey 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
 */
-
