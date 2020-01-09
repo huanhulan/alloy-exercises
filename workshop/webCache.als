@@ -107,7 +107,7 @@ sig Request extends Event{
 /*
 * facts
 */
-fact noConcurrentBuild{
+fact noPrallelBuild{
   all disj b, b': Build|
     b.pre != b'.pre
 }
