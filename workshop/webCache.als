@@ -69,21 +69,19 @@ sig Build extends Event{
 }
 
 pred pushToS3[files: Asset, t,t': Time] {
-  all disj f: files|
-    let oldFile = inService[f.uri, S3, t] {
-      oldFile != none => S3.assets[t'] = S3.assets[t] - oldFile + files
-      else
-      S3.assets[t'] = S3.assets[t] + files
-    }
+  let oldFile = inService[files.uri, S3, t] {
+    oldFile != none => S3.assets[t'] = S3.assets[t] - oldFile + files
+    else
+    S3.assets[t'] = S3.assets[t] + files
+  }
 }
 
 pred cacheInCloudFront[pre,post: Time, files: set Asset] {
-  all disj f: files |
-    let cache = inService[f.uri, Cloudfront, pre] {
-      cache != none => Cloudfront.assets[post] = Cloudfront.assets[pre] -- cache found, do nothing
-      else
-      Cloudfront.assets[post] = Cloudfront.assets[pre] + f -- not found, set the cache
-    }
+  let cache = inService[files.uri, Cloudfront, pre] {
+    cache != none => Cloudfront.assets[post] = Cloudfront.assets[pre] -- cache found, do nothing
+    else
+    Cloudfront.assets[post] = Cloudfront.assets[pre] + files -- not found, set the cache
+  }
 }
 
 
@@ -141,8 +139,21 @@ fact transitions {
 			one e: Event {
         e.pre = t and e.post = t'
         S3.assets[t'] != S3.assets[t] <=> e in Build
-        Cloudfront.assets[t'] != Cloudfront.assets[t] => e in Request
+        Cloudfront.assets[t'] != Cloudfront.assets[t] => {
+          e in Request
+          Cloudfront.assets[t'] in e.response
+        }
       }
+}
+
+fact S3ShouldBeTheSameWithoutAnyBuild {
+  all t: Time - Time/first |
+    no Build.post & t => S3.assets[t.prev] = S3.assets[t]
+}
+
+fact CloudfrontBeTheSameWithoutAnyRequest {
+  all t: Time - Time/first |
+    no Request.post & t => Cloudfront.assets[t.prev] = Cloudfront.assets[t]
 }
 
 -- test run
