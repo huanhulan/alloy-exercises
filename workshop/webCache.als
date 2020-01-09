@@ -11,7 +11,6 @@ abstract sig StaticFileService {
 one sig S3 extends StaticFileService{}
 one sig Cloudfront extends StaticFileService{}
 
-// empty uri&tag means that the asset has yet to be produced
 abstract sig Asset{
   uri: one Type,
   v: one BuildVersion,
@@ -156,17 +155,27 @@ fact CloudfrontBeTheSameWithoutAnyRequest {
     no Request.post & t => Cloudfront.assets[t.prev] = Cloudfront.assets[t]
 }
 
--- test run
+/*
+* test run
+*/
 run {
   some Build
   and
   some Request
 } for 3 but exactly 3 Event,exactly 4 Asset, exactly 4 Time
 
+/*
+* check 1: counting
+*/
 check {
   #Asset = mul[#Build, 2]
+  all t: Time|
+    let filesInS3 = S3.assets[t] {
+      #filesInS3 = 0 or #filesInS3 = 2
+      let t = filesInS3.uri | #t = 0 or #t = 2
+    }
 } for 12
 /*
-* check: for evey 'Request' event, its assets' versions are the same
+* check 2: for evey 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
 */
