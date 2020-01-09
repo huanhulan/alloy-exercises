@@ -163,6 +163,9 @@ run {
   some Request
 } for 3 but exactly 3 Event,exactly 4 Asset, exactly 4 Time
 
+check {
+  #Asset = mul[#Build, 2]
+} for 12
 /*
 * check: for evey 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
