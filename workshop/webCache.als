@@ -32,7 +32,7 @@ abstract sig Event{
 * determine whether there is cached version of wanted 'Type' of asset in a 'StaticFileService' under given 'Time'
 */
 fun inService[type: Type, store: StaticFileService, t: Time]: set Asset {
-  let matchedType = store.assets[t] | some matchedType.uri & type => matchedType else none
+  store.assets[t] & uri.type
 }
 
 /*
@@ -190,3 +190,9 @@ check {
 * check 2: for evey 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
 */
+check {
+  all r: Request|
+    all disj a: r.response |
+      let recentBuild = getMostRecentlyBuild[r.pre] |
+        some recentBuild => a.v = recentBuild.v
+} for 3 but exactly 4 Event,exactly 4 Asset, exactly 5 Time -- should find 1 counter example
