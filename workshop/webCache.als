@@ -2,18 +2,18 @@ open util/time as Time
 open util/ordering[BuildVersion]
 open util/integer
 
-sig BuildVersion{}
+sig BuildVersion {}
 
 abstract sig StaticFileService {
   assets: Time -> set Asset
 }
 
-one sig S3 extends StaticFileService{}
-one sig Cloudfront extends StaticFileService{}
+one sig S3 extends StaticFileService {}
+one sig Cloudfront extends StaticFileService {}
 
 -- no need for modeling the client-side cache since caching on client side can be easily detected/eluded
 
-abstract sig Asset{
+abstract sig Asset {
   uri: one Type,
   v: one BuildVersion,
 }
@@ -23,11 +23,55 @@ abstract sig Asset{
 * any type of 2 are isomorphic.
 */
 abstract sig Type {}
-one sig Entry extends Type{}
-one sig Other extends Type{}
+one sig Entry extends Type {}
+one sig Other extends Type {}
 
-abstract sig Event{
+abstract sig Event {
   pre, post: one Time
+}
+
+/*
+* 'Build' Event: represented by its 'BuildVersion', producing new 'Entry' and its 'Other' assets,
+* and 'BuildVersion' increments by each 'Build'.
+* Also push its assets into 'S3' while has no effects on other elements.(TODO)
+* If the name is the same, Overwrite the file
+* every 'Asset' belongs to one dist of a 'Build'
+*/
+sig Build extends Event {
+  v: disj BuildVersion,
+  dist: disj set Asset
+}{
+  // rules for its assets
+  dist.v = v
+  #dist = 2
+  all disj e,o: dist | e.uri != o.uri
+
+  // rules for S3
+  pushToS3[dist, pre, post]
+}
+
+/*
+* 'Request' Event: issue 2 'request's, one for entry with 'Int' param, the other for 'Other' without param.
+* And if some fetched resources can't be found in current 'S3', then put resources into the 'next' state of 'S3'.
+* Storing the returning assets into event's 'response' filed.
+*/
+sig Request extends Event {
+  response: set Asset
+}{
+  /*
+  * For this version, when a browser receives our html file, it would always issue an http request for
+  * index.js with an 'timestamp' query param whose value are the timestamp when the request get received by
+  * the server. And for the other static files will always use the same file name without any query param.
+  * So modeling the server who generates html files is just **isomorphic** to the following way: 
+  * modeling every request/response pair of a single page rendering
+  */ 
+  response = request[Entry, pre, Int] + request[Other, pre, none]
+  cacheInCloudFront[pre, post, response]
+}
+
+-- functions --
+fun getMostRecentlyBuild[t: Time]: lone Build {
+  (Build <: post).(max[Build.post & (prevs[t]+t)])
 }
 
 /*
@@ -53,26 +97,7 @@ fun request[type: Type, t: Time, urlParam: Int]: set Asset {
     } 
 }
 
-/*
-* 'Build' Event: represented by its 'BuildVersion', producing new 'Entry' and its 'Other' assets,
-* and 'BuildVersion' increments by each 'Build'.
-* Also push its assets into 'S3' while has no effects on other elements.(TODO)
-* If the name is the same, Overwrite the file
-* every 'Asset' belongs to one dist of a 'Build'
-*/
-sig Build extends Event{
-  v: disj BuildVersion,
-  dist: disj set Asset
-}{
-  // rules for its assets
-  dist.v = v
-  #dist = 2
-  all disj e,o: dist | e.uri != o.uri
-
-  // rules for S3
-  pushToS3[dist, pre, post]
-}
-
+-- predications --
 pred pushToS3[files: Asset, t,t': Time] {
   let oldFile = inService[files.uri, S3, t] {
     oldFile != none => S3.assets[t'] = S3.assets[t] - oldFile + files
@@ -89,34 +114,8 @@ pred cacheInCloudFront[pre,post: Time, files: set Asset] {
   }
 }
 
-
-/*
-* 'Request' Event: issue 2 'request's, one for entry with 'Int' param, the other for 'Other' without param.
-* And if some fetched resources can't be found in current 'S3', then put resources into the 'next' state of 'S3'.
-* Storing the returning assets into event's 'response' filed.
-*/
-sig Request extends Event{
-  response: set Asset
-}{
-  /*
-  * For this version, when a browser receives our html file, it would always issue an http request for
-  * index.js with an 'timestamp' query param whose value are the timestamp when the request get received by
-  * the server. And for the other static files will always use the same file name without any query param.
-  * So modeling the server who generates html files is just **isomorphic** to the following way: 
-  * modeling every request/response pair of a single page rendering
-  */ 
-  response = request[Entry, pre, Int] + request[Other, pre, none]
-  cacheInCloudFront[pre, post, response]
-}
-
-fun getMostRecentlyBuild[t: Time]: lone Build {
-  (Build <: post).(max[Build.post & (prevs[t]+t)])
-}
-
-/*
-* facts
-*/
-fact noPrallelBuild{
+-- facts --
+fact noPrallelBuilding {
   all disj b, b': Build|
     b.pre != b'.pre
 }
@@ -131,7 +130,7 @@ fact {
   no StaticFileService.assets[Time/first] -- start with empty services
 }
 
-fact EveryAssetBelongsToABuild{
+fact everyAssetBelongsToABuild {
   Asset = Build.dist
 }
 
