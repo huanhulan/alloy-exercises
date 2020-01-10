@@ -147,20 +147,20 @@ fact transitions {
         e.post = t'
       }
   -- comment the following code to get concurrenct situations
-  // all disj e,e': Event {
-  //   no e.pre & e'.pre
-  // }
+  all disj e,e': Event {
+    no e.pre & e'.pre
+  }
 
-  	all t: Time-last |
-		let t' = t.next |
-			one e: Event {
-        e.pre = t and e.post = t'
-        S3.assets[t'] != S3.assets[t] <=> e in Build
-        Cloudfront.assets[t'] != Cloudfront.assets[t] => {
-          e in Request
-          Cloudfront.assets[t'] in e.response
-        }
+  all t: Time-last |
+  let t' = t.next |
+    one e: Event {
+      e.pre = t and e.post = t'
+      S3.assets[t'] != S3.assets[t] <=> e in Build
+      Cloudfront.assets[t'] != Cloudfront.assets[t] => {
+        e in Request
+        Cloudfront.assets[t'] in e.response
       }
+    }
 }
 
 fact S3ShouldBeTheSameWithoutAnyBuild {
@@ -174,7 +174,7 @@ fact CloudfrontBeTheSameWithoutAnyRequest {
 }
 
 /*
-* test run
+* test run, to see if I did anything wrong
 */
 run {
   some Build
@@ -182,10 +182,12 @@ run {
   some Request
   and
   some response
-} for 3 but exactly 3 Event,exactly 4 Asset, 4 Time
+} for 3 but exactly 3 Event,exactly 4 Asset, 4 Time -- examples would be found
 
 /*
 * check 1: counting
+*
+* No counter examples
 */
 check {
   #Asset = mul[#Build, 2]
@@ -199,10 +201,12 @@ check {
 /*
 * check 2: for evey 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
+*
+* This will find counter examples showing outdated 'Other' assets being returned
 */
 check {
   all r: Request|
     all disj a: r.response |
       let recentBuild = getMostRecentlyBuild[r.pre] |
         some recentBuild => a.v = recentBuild.v
-} for 3 but exactly 4 Event,exactly 4 Asset, exactly 5 Time -- will find counter examples showing outdated 'Other' assets being returned
+} for 3 but exactly 4 Event,exactly 4 Asset, exactly 5 Time
