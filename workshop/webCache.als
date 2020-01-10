@@ -104,6 +104,12 @@ fact noPrallelBuild{
     b.pre != b'.pre
 }
 
+fact versionIncreasing {
+  all disj b, b': Build {
+    lt[b.pre, b'.prev] => lt[b.v, b'.v] 
+  }
+}
+
 fact {
   no StaticFileService.assets[Time/first] -- start with empty services
 }
