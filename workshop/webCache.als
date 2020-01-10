@@ -100,6 +100,10 @@ sig Request extends Event{
   cacheInCloudFront[pre, post, response]
 }
 
+fun getMostRecentlyBuild[t: Time]: lone Build {
+  (Build <: post).(max[Build.post & (prevs[t]+t)])
+}
+
 /*
 * facts
 */
