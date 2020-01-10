@@ -28,7 +28,7 @@ abstract sig Event{
 * determine whether there is cached version of wanted 'Type' of asset in a 'StaticFileService' under given 'Time'
 */
 fun inService[type: Type, store: StaticFileService, t: Time]: set Asset {
-  let matchedType = store.assets[t] | matchedType.uri = type => matchedType else none
+  let matchedType = store.assets[t] | some matchedType.uri & type => matchedType else none
 }
 
 /*
@@ -92,13 +92,8 @@ pred cacheInCloudFront[pre,post: Time, files: set Asset] {
 sig Request extends Event{
   response: set Asset
 }{
-  some (S3 + Cloudfront).assets[pre] => response != none
-
-  let entry = request[Entry, pre, Int] |
-    let other = request[Other, pre, none] {
-      response = entry + other
-      cacheInCloudFront[pre, post, entry + other]
-    }
+  response = request[Entry, pre, Int] + request[Other, pre, none]
+  cacheInCloudFront[pre, post, response]
 }
 
 /*
@@ -162,6 +157,8 @@ run {
   some Build
   and
   some Request
+  and
+  some response
 } for 3 but exactly 3 Event,exactly 4 Asset, exactly 4 Time
 
 /*
