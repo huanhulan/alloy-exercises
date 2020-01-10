@@ -16,6 +16,10 @@ abstract sig Asset{
   v: one BuildVersion,
 }
 
+/*
+* Since we have two type of assets, it doesn't matter wheter the type is String or not,
+* any type of 2 are isomorphic.
+*/
 abstract sig Type {}
 one sig Entry extends Type{}
 one sig Other extends Type{}
