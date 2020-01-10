@@ -11,6 +11,8 @@ abstract sig StaticFileService {
 one sig S3 extends StaticFileService{}
 one sig Cloudfront extends StaticFileService{}
 
+-- no need for modeling the client-side cache since caching on client side can be easily detected/eluded
+
 abstract sig Asset{
   uri: one Type,
   v: one BuildVersion,
@@ -96,6 +98,13 @@ pred cacheInCloudFront[pre,post: Time, files: set Asset] {
 sig Request extends Event{
   response: set Asset
 }{
+  /*
+  * For this version, when a browser receives our html file, it would always issue an http request for
+  * index.js with an 'timestamp' query param whose value are the timestamp when the request get received by
+  * the server. And for the other static files will always use the same file name without any query param.
+  * So modeling the server who generates html files is just **isomorphic** to the following way: 
+  * modeling every request/response pair of a single page rendering
+  */ 
   response = request[Entry, pre, Int] + request[Other, pre, none]
   cacheInCloudFront[pre, post, response]
 }
