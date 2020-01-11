@@ -19,7 +19,7 @@ abstract sig Asset {
 }
 
 /*
-* Since we have two type of assets, it doesn't matter wheter the type is String or not,
+* Since we have two type of assets, it doesn't matter wether the type is String or not,
 * any type of 2 are isomorphic.
 */
 abstract sig Type {}
@@ -115,7 +115,7 @@ pred cacheInCloudFront[pre,post: Time, files: set Asset] {
 }
 
 -- facts --
-fact noPrallelBuilding {
+fact noParallelBuilding {
   all disj b, b': Build|
     b.pre != b'.pre
 }
@@ -145,7 +145,7 @@ fact transitions {
         e.pre = t 
         e.post = t'
       }
-  -- comment the following code to get concurrenct situations
+  -- comment the following code to get concurrent situations
   all disj e,e': Event {
     no e.pre & e'.pre
   }
@@ -198,7 +198,7 @@ check {
 } for 12
 
 /*
-* check 2: for evey 'Request' event, its assets' versions are the same
+* check 2: for every 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
 *
 * This will find counter examples showing outdated 'Other' assets being returned
