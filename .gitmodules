@@ -1,0 +1,3 @@
+[submodule "workshop/SOP"]
+	path = workshop/SOP
+	url = https://github.com/huanhulan/SOP.git
