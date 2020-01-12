@@ -263,6 +263,7 @@ pred noCopiesOfGloves[gloves: seq Glove] {
       gloves[i] != gloves[i']
 }
 
+-- would find instances, but gonna take about 3mins
 run {
   #Operate = 3
 } for 12 but exactly 4 Glove, exactly 8 GloveSide, exactly 3 Patient, 4 seq

@@ -200,6 +200,17 @@ fact CloudfrontBeTheSameWithoutAnyRequest {
 }
 
 /*
+* test run, to see if I did anything wrong
+*/
+run {
+  some Build
+  and
+  some Request
+  and
+  some response
+} for 3 but exactly 12 Event, 22 Asset, 11 BuildVersion, exactly 13 Time -- examples would be found
+
+/*
 * check: for every 'Request' event, its assets' versions are the same
 * and each 'Request' always receive the newest version of assets.
 * Due to 'Scope Monotonicity', we don't need to check the scope setting for
@@ -210,4 +221,4 @@ check {
     all disj a: r.response |
       let recentBuild = getMostRecentlyBuild[r.pre] |
         some recentBuild => a.v = recentBuild.v
-} for 3 but exactly 20 Event, 40 Asset, 20 BuildVersion, exactly 21 Time
+} for 3 but exactly 12 Event, 22 Asset, 11 BuildVersion, exactly 13 Time
