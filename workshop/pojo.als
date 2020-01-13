@@ -27,15 +27,6 @@ fun lookup [o: Object, k: Key] : set Value {
 }
 
 -- validation
-assert delUndoesAdd {
-	all o, o', o'': Object, k: Key, v: Value |
-		add [o, o', k, v] and del [o', o'', k]
-		implies
-		o.mapping = o''.mapping
-}
-
-check delUndoesAdd for 3
-
 assert addIdempotent {
 	all o, o', o'': Object, k: Key, v: Value |
 		add [o, o', k, v] and add [o', o'', k, v]
@@ -53,3 +44,12 @@ assert addLocal {
 }
 
 check addLocal for 10
+
+assert delUndoesAdd {
+	all o, o', o'': Object, k: Key, v: Value |
+		add [o, o', k, v] and del [o', o'', k]
+		implies
+		o.mapping = o''.mapping
+}
+
+check delUndoesAdd for 3
