@@ -10,32 +10,46 @@ sig Object in JsObject {
 	mapping: Key -> lone Value
 }
 
-pred add [b, b': Object, n: Key, a: Value] {
-	b'.mapping = b.mapping + n->a
+-- show some instances
+run {} for 3
+
+-- actions
+pred add [o, o': Object, k: Key, v: Value] {
+	o'.mapping = o.mapping + k->v
 }
 
-pred del [b, b': Object, n: Key] {
-	b'.mapping = b.mapping - n->Value
+pred del [o, o': Object, k: Key] {
+	o'.mapping = o.mapping - k->Value
 }
 
-fun lookup [b: Object, n: Key] : set Value {
-	n.(b.mapping)
+fun lookup [o: Object, k: Key] : set Value {
+	k.(o.mapping)
 }
 
-assert delUndoesAdd {
-	all b, b', b'': Object, n: Key, a: Value |
-		add [b, b', n, a] and del [b', b'', n]
-		implies
-		b.mapping = b''.mapping
-}
-
-check delUndoesAdd for 3
-
+-- validation
 assert addIdempotent {
-	all b, b', b'': Object, n: Key, a: Value |
-		add [b, b', n, a] and add [b', b'', n, a]
+	all o, o', o'': Object, k: Key, v: Value |
+		add [o, o', k, v] and add [o', o'', k, v]
 		implies
-		b'.mapping = b''.mapping
+		o'.mapping = o''.mapping
 }
 
 check addIdempotent for 10
+
+assert addLocal {
+	all o, o': Object, k, k': Key, v: Value |
+		add [o, o', k, v] and k != k'
+		implies
+		lookup [o, k'] = lookup [o', k']
+}
+
+check addLocal for 10
+
+assert delUndoesAdd {
+	all o, o', o'': Object, k: Key, v: Value |
+		add [o, o', k, v] and del [o', o'', k]
+		implies
+		o.mapping = o''.mapping
+}
+
+check delUndoesAdd for 3
