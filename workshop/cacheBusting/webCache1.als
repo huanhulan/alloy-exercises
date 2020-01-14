@@ -149,7 +149,7 @@ fact versionIncreasing {
   }
 }
 
-fact {
+fact startWithEmpty {
   no StaticFileService.assets[Time/first] -- start with empty services
 }
 
@@ -199,6 +199,11 @@ fact CloudfrontBeTheSameWithoutAnyRequest {
     no Request.post & t => Cloudfront.assets[t.prev] = Cloudfront.assets[t]
 }
 
+-- reducing the amount of subexpressions to speed up solving
+fact {
+  #Asset = mul[#BuildVersion, 2]
+}
+
 /*
 * test run, to see if I did anything wrong
 */
@@ -221,4 +226,4 @@ check {
     all disj a: r.response |
       let recentBuild = getMostRecentlyBuild[r.pre] |
         some recentBuild => a.v = recentBuild.v
-} for 3 but exactly 12 Event, 22 Asset, 11 BuildVersion, exactly 13 Time
+} for 3 but exactly 10 Event, 18 Asset, 9 BuildVersion, exactly 11 Time -- no counter examples, took about 10 hours to solve
