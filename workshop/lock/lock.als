@@ -1,40 +1,32 @@
-// The puzzle is in challenge.jpg
+enum Digit { N0,N1,N2,N3,N4,N5,N6,N7,N8,N9 }
+enum Code {d1,d2,d3}
 
-pred lock[ a,b,c : Int ] {
-    hint1[a,b,c]
-    hint2[a,b,c]
-    hint3[a,b,c]
-    hint4[a,b,c]
-    hint5[a,b,c]
+abstract sig Lock {
+   digits :  Code -> one Digit
+}
+one sig comb1, comb2, comb3, comb4, comb5, sol extends Lock {}
+
+fact combinations {
+    comb1.digits = d1->N6 + d2->N8 + d3->N2  // [6,8,2]
+    comb2.digits = d1->N6 + d2->N1 + d3->N4  // [6,1,4]
+    comb3.digits = d1->N2 + d2->N0 + d3->N6  // [2,0,6]
+    comb4.digits = d1->N7 + d2->N3 + d3->N8  // [7,3,8]
+    comb5.digits = d1->N7 + d2->N8 + d3->N0  // [7,8,0]
 }
 
-pred hint1[a,b,c: Int] {
-  (a=6 || (b!=8 && c!= 2)) 
-  ||  (b=8 || (a!=6 && c!= 2))
-  ||  (c=2 || (a!=6 && b!= 8)) 
+fact solution {
+  one comb1.digits & sol.digits // one digit placed correctly
+  
+  no comb2.digits & sol.digits // no correctly placed digits
+  one univ.(comb2.digits) & univ.(sol.digits) // one correct digit
+  
+  no comb3.digits & sol.digits // no correctly placed digits
+  # ( univ.(comb3.digits) & univ.(sol.digits) ) = 2 // two correct digits
+  
+  no  univ.(comb4.digits) & univ.(sol.digits) // no correct digit
+  
+  no comb5.digits & sol.digits // no correctly placed digits
+  one univ.(comb5.digits) & univ.(sol.digits) // one correct digit
 }
 
-pred hint2[a,b,c: Int] {
-  a in 1+4 || (let x = b+c | x not in 1+6+4)
-  || (b in 6+4 || (let x = a+c | x not in 1+6+4))
-  || (c in 6+1 || (let x = a+b | x not in 1+6+4))
-}
-
-pred hint3[a,b,c: Int] {
-  (a != 2 && b = 6 && c = 0)
-  || (b != 0 && a=6 && c = 2)
-  || (c != 6 && a=0 && b = 2)
-}
-
-pred hint4[a,b,c: Int] {
-  all i: a + b + c |
-    i not in 7 + 3 + 8
-}
-
-pred hint5[a,b,c: Int] {
-  a in 0+8 || (let x = b+c | x not in 0+8+7)
-  || (b in 0+7 || (let x = a+c | x not in 0+8+7))
-  || (c in 7+8 || (let x = a+b | x not in 0+8+7))
-}
-
-run lock for 6 int
+run {}
